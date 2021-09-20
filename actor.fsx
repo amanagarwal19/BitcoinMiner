@@ -29,10 +29,10 @@ let stop(printTime: bool, slowDown: bool) =
 
 let zeros = fsi.CommandLineArgs.[1]|>int;
 let workerCount = 5
-let totalStrings = 100000000
+let totalStrings = 100000
 let eachWorkerEffort = totalStrings / workerCount
 // printfn "Worker effort : %d" eachWorkerEffort
-
+let mutable totalCoindFound = 0
 // To keep a count of when all the workers have finished and terminate the program
 let mutable workersFinished = 0
 
@@ -82,6 +82,7 @@ let worker (mailbox:Actor<_>)=
 
                 //Check for validation of the encryption string
                 if validCoin(encryptedString,zeros) then 
+                    totalCoindFound <- totalCoindFound + 1
                     validCounter <- validCounter + 1 
                     str <- str +
                     "Input: "+  stringToEncrypt+
@@ -148,6 +149,7 @@ let bossActor (mailbox:Actor<_> ) =
             workersFinished <- workersFinished + 1
             printfn "finished workers %d" workersFinished
             if workersFinished = workerCount then 
+                printfn "TOTAL COINS MINED WITH %d zeros = %d" zeros totalCoindFound
                 stop(true,false)
                 mailbox.Context.System.Terminate() |>ignore
 
