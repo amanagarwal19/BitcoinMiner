@@ -167,7 +167,8 @@ let client (mailbox:Actor<_>) =
 
         else if incoming = "ServerSide Completed" then 
                 serverSideCompleted <- true
-                system.Terminate() |> ignore
+                if clientSideCompleted then
+                    system.Terminate() |> ignore
         else
             printfn "Total coins found by SERVER: %s \n\n" incoming
 
