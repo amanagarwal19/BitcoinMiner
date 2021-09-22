@@ -11,10 +11,10 @@ open Akka.FSharp
 open Util
 
 
-let workerCount = 5
+let workerCount = 8
 let mutable returnRef = null
 // printfn "Worker effort : %d" eachWorkerEffort
-
+let mutable totalCoinsFound = 0
 // To keep a count of when all the workers have finished and terminate the program
 let mutable workersFinished = 0
 
@@ -41,14 +41,14 @@ let serverConfiguration =
             }
             remote{
                 helios.tcp{
-                    port:8200
-                    hostname:100.64.3.40
+                    port:8201
+                    hostname:localhost
                 }
             }
         }")
 // Server actor with name RemoteSystem to be referrenced by client    
 let system =  System.create "RemoteSystem" (serverConfiguration)
-
+ 
 //Creating working actors
 let worker (mailbox:Actor<_>)=
     let rec loop() = actor{
@@ -58,12 +58,7 @@ let worker (mailbox:Actor<_>)=
         match msg with
 
         |StartYourJob(ID,capacity,startCharOffset,z) -> 
-            // printfn "Worker %d Initialised\n" ID
-
-            //String to store all the encrypted strings and their corresponding keys
-            let mutable str = ""
-            let mutable invalidCounter = 0
-            let mutable validCounter = 0
+     
             //Perform the encryption
             for i = 1 to capacity do
                 let stringToEncrypt = stringGenerator(startCharOffset)
@@ -71,6 +66,7 @@ let worker (mailbox:Actor<_>)=
 
                 //Check for validation of the encryption string
                 if validCoin(encryptedString,z) then 
+                    totalCoinsFound <- totalCoinsFound + 1
                     sender<!ReceiveMessageFromWorker(ID,stringToEncrypt,encryptedString)
 
             sender<!Finished(ID,"Done");
@@ -123,6 +119,7 @@ let bossActor (mailbox:Actor<_> ) =
                 // mailbox.Context.System.Terminate() |>ignore
                 returnRef <!"ServerSide Completed"
                 printfn "Servers have finished their job"
+                printfn "Total coins found = %d" totalCoinsFound
 
         | _ -> printfn "Incorrect message"
         
