@@ -1,6 +1,7 @@
 #r "nuget: Akka.FSharp"
 #r "nuget: Akka.Remote"
 #load "Util.fsx"
+#time "on"
 
 open System
 open System.Threading
@@ -10,8 +11,8 @@ open Akka.FSharp
 open Util
 
 let zeros = fsi.CommandLineArgs.[1]|>int;
-let workerCount = 5
-let totalStrings = 10000000
+let workerCount = 8
+let totalStrings = 100000
 let eachSideDuty = totalStrings/2
 let eachWorkerEffort = eachSideDuty / workerCount
 // printfn "Worker effort : %d" eachWorkerEffort
@@ -19,6 +20,8 @@ let mutable clientSideCompleted = false;
 let mutable serverSideCompleted = false;
 // To keep a count of when all the workers have finished and terminate the program
 let mutable workersFinished = 0
+let mutable totalCoinsFound =0;
+
 
 let clientConfiguration = 
     ConfigurationFactory.ParseString(   
@@ -65,6 +68,7 @@ let worker (mailbox:Actor<_>)=
 
                 //Check for validation of the encryption string
                 if validCoin(encryptedString,zeros) then 
+                    totalCoinsFound <- totalCoinsFound + 1
                     sender<!ReceiveMessageFromWorker(ID,stringToEncrypt,encryptedString)
 
             sender<!Finished(ID,"Done");
@@ -98,7 +102,7 @@ let bossActor (mailbox:Actor<_> ) =
             for i in 0..(workerCount-1) do //minus 1 because zero index based
                 
                 workers.Item(i|>int)<!StartYourJob(workerID,eachWorkerEffort,characterStartOffset)
-                characterStartOffset<- characterStartOffset + 5
+                characterStartOffset<- characterStartOffset + 3
                 workerID <- workerID + 1
             
             // printfn "welcome to assigning task to %d people" n
@@ -116,6 +120,7 @@ let bossActor (mailbox:Actor<_> ) =
                 // mailbox.Context.System.Terminate() |>ignore
                 clientSideCompleted <- true
                 printfn "Client side has finished thier job"
+                printfn "Total coins found by CLIENT = %d" totalCoinsFound
 
         | _ -> printfn "Incorrect message"
         
@@ -134,11 +139,11 @@ let clientBoss = spawn system "bossActor" bossActor
 
 // -----------------------Connecting to remote actor system----------------------------
 
-// let serverIp = fsi.CommandLineArgs.[2]
-// let serverPort = fsi.CommandLineArgs.[3]
+let serverAddress = fsi.CommandLineArgs.[2]
+let serverPort = fsi.CommandLineArgs.[3]
 
-let serverAddress = "192.168.251.176"
-let serverPort = "8201"
+// let serverAddress = "192.168.251.176"
+// let serverPort = "8201"
 
 let connectionAddress = "akka.tcp://RemoteSystem@" + serverAddress + ":" + serverPort + "/user/server" 
 printfn "%s" connectionAddress
@@ -164,7 +169,7 @@ let client (mailbox:Actor<_>) =
                 serverSideCompleted <- true
                 system.Terminate() |> ignore
         else
-            printfn "default: %s " incoming
+            printfn "Total coins found by SERVER: %s \n\n" incoming
 
         return! loop()
     }
