@@ -6,6 +6,10 @@ The project distributed the computation needs across the different cores of the 
 
 The project successfully achieves a parallelism ratio of 3.4.
 
+### **Scaling the Miner** 
+
+The system has been extended to run across machines **remotely** using TCP connection. This allows **pooling of computation resources** to increase the computational efficiency.
+
 ## Steps to run
 
 >1.  `git clone amanagarwal19/BitcoinMiner`
